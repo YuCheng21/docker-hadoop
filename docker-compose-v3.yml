@@ -5,6 +5,8 @@ services:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     networks:
       - hbase
+    ports:
+     - "9870:9870"
     volumes:
       - namenode:/hadoop/dfs/name
     environment:
@@ -18,35 +20,39 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.hostname == vm1
       labels:
         traefik.docker.network: hbase
-        traefik.port: 50070
+        traefik.port: 9870
 
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     networks:
       - hbase
+    ports:
+      - "9864:9864"
     volumes:
       - datanode:/hadoop/dfs/data
     env_file:
       - ./hadoop.env
     environment:
-      SERVICE_PRECONDITION: "namenode:50070"
+      SERVICE_PRECONDITION: "namenode:9870"
     deploy:
       mode: global
       restart_policy:
         condition: on-failure
       labels:
         traefik.docker.network: hbase
-        traefik.port: 50075
+        traefik.port: 9864
 
   resourcemanager:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
     networks:
       - hbase
+    ports:
+      - "8088:8088"
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864"
     env_file:
       - ./hadoop.env
     deploy:
@@ -56,7 +62,7 @@ services:
         condition: on-failure
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.hostname == vm1
       labels:
         traefik.docker.network: hbase
         traefik.port: 8088
@@ -67,8 +73,10 @@ services:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
     networks:
       - hbase
+    ports:
+      - "8042:8042"
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
     deploy:
@@ -83,10 +91,12 @@ services:
     image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
     networks:
       - hbase
+    ports:
+      - "8188:8188"
     volumes:
       - hadoop_historyserver:/hadoop/yarn/timeline
     environment:
-      SERVICE_PRECONDITION: "namenode:50070 datanode:50075 resourcemanager:8088"
+      SERVICE_PRECONDITION: "namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
       - ./hadoop.env
     deploy:
@@ -94,7 +104,7 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.hostname == akswnc4.aksw.uni-leipzig.de
+          - node.hostname == vm1
       labels:
         traefik.docker.network: hbase
         traefik.port: 8188
